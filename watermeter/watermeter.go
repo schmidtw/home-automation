@@ -3,6 +3,7 @@ package watermeter
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -15,28 +16,54 @@ type entry struct {
 type Watermeter struct {
 	Initial uint64 // 1/1000 gallons
 	Timeout time.Duration
-	Usage   func(gallons uint64)
+	Usage   func(gallons uint64, flow float64)
 
-	total  uint64
-	events list.List
-	mutex  sync.Mutex
+	now         func() time.Time
+	last_gallon entry
+	total       uint64
+	events      list.List
+	mutex       sync.Mutex
+}
+
+func (e *entry) String() string {
+	return fmt.Sprintf("time: %s, total: %d", e.time, e.total)
+}
+
+func (w *Watermeter) String() string {
+	rv := fmt.Sprintf("{\n\tInitial: %d,\n\tTimeout: %s,\n\tUsage: %v,\n\tnow: %v,\n\tlast_gallon{ %s },\n\ttotal: %d,\n\tevents { ", w.Initial, w.Timeout, w.Usage, w.now, w.last_gallon.String(), w.total)
+	e := w.events.Front()
+	comma := ""
+	for nil != e {
+		rv += fmt.Sprintf("%s\n\t\t{ %s }", comma, e.Value.(*entry).String())
+		comma = ","
+		e = e.Next()
+	}
+	rv += fmt.Sprintf("\n\t}\n}")
+
+	return rv
 }
 
 func (w *Watermeter) Init() *Watermeter {
+
+	if nil == w.now {
+		w.now = func() time.Time { return time.Now() }
+	}
+
 	w.total = w.Initial
 	w.mutex = sync.Mutex{}
 	w.events.Init()
 
 	e := new(entry)
-	e.time = time.Now()
+	e.time = w.now()
 	e.total = w.total
 	w.events.PushFront(e)
+	w.last_gallon = *e
 
 	return w
 }
 
 func (w *Watermeter) GetFlow(duration time.Duration) float64 {
-	now := time.Now()
+	now := w.now()
 	then := now.Add(-duration)
 
 	end := entry{time: now, total: w.total}
@@ -48,7 +75,7 @@ func (w *Watermeter) GetFlow(duration time.Duration) float64 {
 
 	for nil != item {
 		e := item.Value.(*entry)
-		if then.Before(e.time) {
+		if then.Equal(e.time) || then.Before(e.time) {
 			start.time = e.time
 			start.total = e.total
 			item = item.Next()
@@ -67,7 +94,7 @@ func (w *Watermeter) Gallons() uint64 {
 }
 
 func (w *Watermeter) Update(mGallons uint) {
-	now := time.Now()
+	now := w.now()
 	prune := now.Add(-w.Timeout)
 
 	w.mutex.Lock()
@@ -89,13 +116,19 @@ func (w *Watermeter) Update(mGallons uint) {
 		} else {
 			done = true
 		}
+		if 3 > w.events.Len() {
+			done = true
+		}
 	}
 
 	w.mutex.Unlock()
 
 	if (after - before) > 0 {
 		if nil != w.Usage {
-			go (w.Usage)(after)
+			flow := float64(e.total-w.last_gallon.total) / 1000
+			flow /= e.time.Sub(w.last_gallon.time).Minutes()
+			go (w.Usage)(after, flow)
 		}
+		w.last_gallon = *e
 	}
 }
