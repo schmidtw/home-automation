@@ -19,11 +19,11 @@ type Watermeter struct {
 	Timeout time.Duration
 	Usage   func(gallons uint64, flow float64)
 
-	now         func() time.Time
-	last_gallon entry
-	total       uint64
-	events      list.List
-	mutex       sync.Mutex
+	now        func() time.Time
+	lastGallon entry
+	total      uint64
+	events     list.List
+	mutex      sync.Mutex
 }
 
 func (e *entry) String() string {
@@ -32,7 +32,7 @@ func (e *entry) String() string {
 
 // String returns the formatted string representation of the object.
 func (w *Watermeter) String() string {
-	rv := fmt.Sprintf("{\n\tTimeout: %s,\n\tUsage: %p,\n\tnow: %p,\n\tlast_gallon{ %s },\n\ttotal: %d,\n\tevents { ", w.Timeout, w.Usage, w.now, w.last_gallon.String(), w.total)
+	rv := fmt.Sprintf("{\n\tTimeout: %s,\n\tUsage: %p,\n\tnow: %p,\n\tlastGallon{ %s },\n\ttotal: %d,\n\tevents { ", w.Timeout, w.Usage, w.now, w.lastGallon.String(), w.total)
 	e := w.events.Front()
 	comma := ""
 	for nil != e {
@@ -45,7 +45,7 @@ func (w *Watermeter) String() string {
 	return rv
 }
 
-// Initializes the watermeter object to the initial state.
+// Init initializes the watermeter object to the initial state.
 // Argument initial is the initial running total in 1/1000 gallon units.
 func (w *Watermeter) Init(initial uint64) *Watermeter {
 
@@ -61,12 +61,12 @@ func (w *Watermeter) Init(initial uint64) *Watermeter {
 	e.time = w.now()
 	e.total = w.total
 	w.events.PushFront(e)
-	w.last_gallon = *e
+	w.lastGallon = *e
 
 	return w
 }
 
-// GetFlow() gets the flow rate (gallons/min) over the specified duration.
+// GetFlow gets the flow rate (gallons/min) over the specified duration.
 func (w *Watermeter) GetFlow(duration time.Duration) float64 {
 	now := w.now()
 	then := now.Add(-duration)
@@ -90,11 +90,11 @@ func (w *Watermeter) GetFlow(duration time.Duration) float64 {
 	}
 	w.mutex.Unlock()
 
-	volume_delta := end.total - start.total
-	return float64(volume_delta) / 1000 / duration.Minutes()
+	volumeDelta := end.total - start.total
+	return float64(volumeDelta) / 1000 / duration.Minutes()
 }
 
-// GetGallons() gets the gallon running count.
+// GetGallons gets the gallon running count.
 func (w *Watermeter) GetGallons() uint64 {
 	return w.total / 1000
 }
@@ -133,10 +133,10 @@ func (w *Watermeter) Update(mGallons uint) {
 
 	if (after - before) > 0 {
 		if nil != w.Usage {
-			flow := float64(e.total-w.last_gallon.total) / 1000
-			flow /= e.time.Sub(w.last_gallon.time).Minutes()
+			flow := float64(e.total-w.lastGallon.total) / 1000
+			flow /= e.time.Sub(w.lastGallon.time).Minutes()
 			go (w.Usage)(after, flow)
 		}
-		w.last_gallon = *e
+		w.lastGallon = *e
 	}
 }

@@ -14,13 +14,13 @@ func setNow(w *Watermeter, min int) {
 }
 
 func setUsage(assert *assert.Assertions, w *Watermeter, wg *sync.WaitGroup,
-	expected_gallons uint64, expected_flow float64) {
+	expectedGallons uint64, expectedFlow float64) {
 
 	wg.Add(1)
-	w.Usage = func(actual_gallons uint64, actual_flow float64) {
+	w.Usage = func(actualGallons uint64, actualFlow float64) {
 		defer wg.Done()
-		assert.Equal(expected_gallons, actual_gallons, "should be equal")
-		assert.Equal(expected_flow, actual_flow)
+		assert.Equal(expectedGallons, actualGallons, "should be equal")
+		assert.Equal(expectedFlow, actualFlow)
 	}
 }
 
@@ -47,7 +47,7 @@ func TestWatermeterString(t *testing.T) {
 	wm.Init(0)
 
 	wm.now = nil
-	assert.Equal("{\n\tTimeout: 4s,\n\tUsage: 0x0,\n\tnow: 0x0,\n\tlast_gallon{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 },\n\ttotal: 0,\n\tevents { \n\t\t{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 }\n\t}\n}", wm.String())
+	assert.Equal("{\n\tTimeout: 4s,\n\tUsage: 0x0,\n\tnow: 0x0,\n\tlastGallon{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 },\n\ttotal: 0,\n\tevents { \n\t\t{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 }\n\t}\n}", wm.String())
 }
 
 func TestWatermeterDeep(t *testing.T) {
