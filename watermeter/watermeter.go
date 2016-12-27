@@ -13,8 +13,9 @@ type entry struct {
 	total uint64
 }
 
+// A Watermeter represents a watermeter with a simple magnet and sensor set
+// at a specific volume flow rate.
 type Watermeter struct {
-	Initial uint64 // 1/1000 gallons
 	Timeout time.Duration
 	Usage   func(gallons uint64, flow float64)
 
@@ -29,8 +30,9 @@ func (e *entry) String() string {
 	return fmt.Sprintf("time: %s, total: %d", e.time, e.total)
 }
 
+// String returns the formatted string representation of the object.
 func (w *Watermeter) String() string {
-	rv := fmt.Sprintf("{\n\tInitial: %d,\n\tTimeout: %s,\n\tUsage: %v,\n\tnow: %v,\n\tlast_gallon{ %s },\n\ttotal: %d,\n\tevents { ", w.Initial, w.Timeout, w.Usage, w.now, w.last_gallon.String(), w.total)
+	rv := fmt.Sprintf("{\n\tTimeout: %s,\n\tUsage: %v,\n\tnow: %v,\n\tlast_gallon{ %s },\n\ttotal: %d,\n\tevents { ", w.Timeout, w.Usage, w.now, w.last_gallon.String(), w.total)
 	e := w.events.Front()
 	comma := ""
 	for nil != e {
@@ -43,13 +45,15 @@ func (w *Watermeter) String() string {
 	return rv
 }
 
-func (w *Watermeter) Init() *Watermeter {
+// Initializes the watermeter object to the initial state.
+// Argument initial is the initial running total in 1/1000 gallon units.
+func (w *Watermeter) Init(initial uint64) *Watermeter {
 
 	if nil == w.now {
 		w.now = func() time.Time { return time.Now() }
 	}
 
-	w.total = w.Initial
+	w.total = initial
 	w.mutex = sync.Mutex{}
 	w.events.Init()
 
@@ -62,6 +66,7 @@ func (w *Watermeter) Init() *Watermeter {
 	return w
 }
 
+// GetFlow() gets the flow rate (gallons/min) over the specified duration.
 func (w *Watermeter) GetFlow(duration time.Duration) float64 {
 	now := w.now()
 	then := now.Add(-duration)
@@ -89,10 +94,13 @@ func (w *Watermeter) GetFlow(duration time.Duration) float64 {
 	return float64(volume_delta) / 1000 / duration.Minutes()
 }
 
-func (w *Watermeter) Gallons() uint64 {
+// GetGallons() gets the gallon running count.
+func (w *Watermeter) GetGallons() uint64 {
 	return w.total / 1000
 }
 
+// Update updates the watermeter with the specified number of 1/1000 gallons
+// that have passed through the meter.
 func (w *Watermeter) Update(mGallons uint) {
 	now := w.now()
 	prune := now.Add(-w.Timeout)

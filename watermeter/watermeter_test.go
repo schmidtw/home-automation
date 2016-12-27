@@ -28,10 +28,10 @@ func TestWatermeterSimple(t *testing.T) {
 	assert := assert.New(t)
 
 	timeout, _ := time.ParseDuration("4s")
-	wm := Watermeter{Initial: 0, Timeout: timeout}
-	wm.Init()
+	wm := Watermeter{Timeout: timeout}
+	wm.Init(0)
 
-	assert.Equal(uint64(0), wm.Gallons())
+	assert.Equal(uint64(0), wm.GetGallons())
 }
 
 func TestWatermeterString(t *testing.T) {
@@ -39,16 +39,15 @@ func TestWatermeterString(t *testing.T) {
 
 	timeout, _ := time.ParseDuration("4s")
 	wm := Watermeter{
-		Initial: 0,
 		Timeout: timeout,
 		now: func() time.Time {
 			return time.Date(2016, time.December, 25, 1, 0, 0, 0, time.UTC)
 		},
 	}
-	wm.Init()
+	wm.Init(0)
 
 	wm.now = nil
-	assert.Equal("{\n\tInitial: 0,\n\tTimeout: 4s,\n\tUsage: <nil>,\n\tnow: <nil>,\n\tlast_gallon{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 },\n\ttotal: 0,\n\tevents { \n\t\t{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 }\n\t}\n}", wm.String())
+	assert.Equal("{\n\tTimeout: 4s,\n\tUsage: <nil>,\n\tnow: <nil>,\n\tlast_gallon{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 },\n\ttotal: 0,\n\tevents { \n\t\t{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 }\n\t}\n}", wm.String())
 }
 
 func TestWatermeterDeep(t *testing.T) {
@@ -58,15 +57,14 @@ func TestWatermeterDeep(t *testing.T) {
 
 	timeout, _ := time.ParseDuration("4m")
 	wm := Watermeter{
-		Initial: 500,
 		Timeout: timeout,
 		now: func() time.Time {
 			return time.Date(2016, time.December, 25, 1, 0, 0, 0, time.UTC)
 		},
 	}
-	wm.Init()
+	wm.Init(500)
 
-	assert.Equal(uint64(0), wm.Gallons())
+	assert.Equal(uint64(0), wm.GetGallons())
 	setNow(&wm, 1)
 	setUsage(assert, &wm, &wg, 1, 0.5)
 	wm.Update(500)
