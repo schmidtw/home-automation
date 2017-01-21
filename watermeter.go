@@ -18,6 +18,7 @@ type entry struct {
 type Watermeter struct {
 	Timeout time.Duration
 	Usage   func(gallons uint64, flow float64)
+	Change  func()
 
 	now        func() time.Time
 	lastGallon entry
@@ -32,7 +33,7 @@ func (e *entry) String() string {
 
 // String returns the formatted string representation of the object.
 func (w *Watermeter) String() string {
-	rv := fmt.Sprintf("{\n\tTimeout: %s,\n\tUsage: %p,\n\tnow: %p,\n\tlastGallon{ %s },\n\ttotal: %d,\n\tevents { ", w.Timeout, w.Usage, w.now, w.lastGallon.String(), w.total)
+	rv := fmt.Sprintf("{\n\tTimeout: %s,\n\tUsage: %p,\n\tChange: %p,\n\tnow: %p,\n\tlastGallon{ %s },\n\ttotal: %d,\n\tevents { ", w.Timeout, w.Usage, w.Change, w.now, w.lastGallon.String(), w.total)
 	e := w.events.Front()
 	comma := ""
 	for nil != e {
@@ -130,6 +131,10 @@ func (w *Watermeter) Update(mGallons uint) {
 	}
 
 	w.mutex.Unlock()
+
+	if nil != w.Change {
+		go (w.Change)()
+	}
 
 	if (after - before) > 0 {
 		if nil != w.Usage {

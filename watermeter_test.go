@@ -47,7 +47,7 @@ func TestWatermeterString(t *testing.T) {
 	wm.Init(0)
 
 	wm.now = nil
-	assert.Equal("{\n\tTimeout: 4s,\n\tUsage: 0x0,\n\tnow: 0x0,\n\tlastGallon{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 },\n\ttotal: 0,\n\tevents { \n\t\t{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 }\n\t}\n}", wm.String())
+	assert.Equal("{\n\tTimeout: 4s,\n\tUsage: 0x0,\n\tChange: 0x0,\n\tnow: 0x0,\n\tlastGallon{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 },\n\ttotal: 0,\n\tevents { \n\t\t{ time: 2016-12-25 01:00:00 +0000 UTC, total: 0 }\n\t}\n}", wm.String())
 }
 
 func TestWatermeterDeep(t *testing.T) {
